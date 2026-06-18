@@ -28,12 +28,13 @@ fi
 "$ROOT/packaging/build_service.sh"
 
 rm -rf "$RELEASE"
-mkdir -p "$APP_PAYLOAD/apps" "$APP_PAYLOAD/bin" "$APP_PAYLOAD/scripts" "$APP_PAYLOAD/logs"
+mkdir -p "$APP_PAYLOAD/apps" "$APP_PAYLOAD/bin" "$APP_PAYLOAD/scripts" "$APP_PAYLOAD/resources" "$APP_PAYLOAD/logs"
 
 ditto --norsrc --noextattr --noqtn "$ROOT/build/python-probe/BLEProbe.app" "$APP_PAYLOAD/apps/BLEProbe.app"
 ditto --norsrc --noextattr --noqtn "$ROOT/build/ipp-command/JadensIPPCommand" "$APP_PAYLOAD/bin/JadensIPPCommand"
 ditto --norsrc --noextattr --noqtn "$ROOT/build/service/JadensPrinterService" "$APP_PAYLOAD/bin/JadensPrinterService"
 cp "$ROOT/src/run_ble_probe_app.sh" "$APP_PAYLOAD/scripts/run_ble_probe_app.sh"
+cp "$ROOT/src/JD-268BT-media.ppd" "$APP_PAYLOAD/resources/JD-268BT-media.ppd"
 chmod +x "$APP_PAYLOAD/scripts/run_ble_probe_app.sh"
 codesign -s - --force --deep "$APP_PAYLOAD/apps/BLEProbe.app"
 xattr -d com.apple.FinderInfo "$APP_PAYLOAD/apps/BLEProbe.app" 2>/dev/null || true
