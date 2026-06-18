@@ -1,15 +1,10 @@
 # JADENS JD-268BT macOS Printer App
 
-This project lets macOS print to a JADENS JD-268BT label printer over
-Bluetooth. It installs a local printer queue that appears in normal macOS print
-dialogs, renders print jobs with the vendor JADENS macOS driver, then sends the
-printer-ready output to the JD-268BT over Bluetooth LE.
+Print from macOS to a JADENS JD-268BT Bluetooth label printer.
 
-This project is not affiliated with or endorsed by JADENS.
-
-It does not implement a custom JADENS raster encoder. The app uses the official
-JADENS macOS driver package for PDF-to-label conversion and uses BLE as the
-transport to the printer.
+This adds a normal Mac printer option for the JD-268BT, so you can print labels
+from apps like Preview, Safari, Chrome, or any app with a macOS print dialog.
+You do not need to move PDFs to the mobile app just to print them.
 
 ## Download
 
@@ -18,23 +13,32 @@ Installable packages are attached to
 the latest `JadensPrinterApp-<version>.pkg` asset and open it on an Apple
 Silicon Mac.
 
-The package runs through the normal macOS Installer UI. It copies the app
-payload, downloads and installs the official JADENS macOS driver if needed,
-starts the `JadensPrinterService` LaunchAgent, creates the `Jadens_268BT_BLE`
-queue, and launches `BLEProbe.app` once so macOS can ask for Bluetooth
-permission.
+After installing, choose `Jadens_268BT_BLE` from a normal macOS print dialog.
+macOS may ask for Bluetooth permission the first time the helper app runs.
 
 The first install requires internet access if the JADENS driver is not already
-installed. The downloaded driver package is verified against a pinned SHA-256
-checksum before it is installed.
+installed.
 
 The package is unsigned. Use control-click -> Open if Gatekeeper blocks a normal
 double-click.
 
+This project is not affiliated with or endorsed by JADENS.
+
+## Technical Details
+
+The app installs a local printer queue that appears in normal macOS print
+dialogs. It uses the official JADENS macOS driver package for PDF-to-label
+conversion, then sends the printer-ready output to the JD-268BT over Bluetooth
+LE.
+
+It does not implement a custom JADENS raster encoder. The installer downloads
+and installs the official JADENS macOS driver if needed, then verifies the
+expected driver files are present.
+
 This release is Apple Silicon only because the packaged helper binaries are
 built as `arm64`.
 
-## Current Print Path
+### Current Print Path
 
 ```text
 macOS app print dialog
