@@ -35,6 +35,17 @@ It does not implement a custom JADENS raster encoder. The installer downloads
 and installs the official JADENS macOS driver if needed, then verifies the
 expected driver files are present.
 
+The driver files used by the app are:
+
+```text
+/Library/Printers/Jadens/PPDs/JD-268BT.ppd
+/Library/Printers/Jadens/Filter/rastertolabel
+```
+
+`rastertolabel` converts CUPS raster into the compact command stream accepted
+by the printer. Its output included leading NUL bytes during testing; the app
+strips those before writing to BLE.
+
 This release is Apple Silicon only because the packaged helper binaries are
 built as `arm64`.
 
@@ -50,6 +61,10 @@ macOS app print dialog
   -> JD-268BT* characteristic 0000fff2-0000-1000-8000-00805f9b34fb
 ```
 
+For each print job, `JadensIPPCommand` renders every PDF page, converts each
+page to CUPS raster with `cupsfilter`, runs each raster page through
+`rastertolabel`, then sends all page payloads over one BLE connection.
+
 The installed runtime lives at:
 
 ```text
@@ -61,6 +76,10 @@ The printer service starts at user login through:
 ```text
 ~/Library/LaunchAgents/com.kancharlawar.jadensprinter.plist
 ```
+
+The installer removes partial previous installs before copying new files. It
+unloads the old LaunchAgent, removes the old queue, stops stale `ippeveprinter`
+processes, deletes the old app directory, then installs the fresh runtime.
 
 ## Build Locally
 
@@ -79,6 +98,18 @@ dist/JadensPrinterApp-$(cat VERSION)/
 dist/JadensPrinterApp-$(cat VERSION).pkg
 ```
 
+The release payload contains:
+
+- `BLEProbe.app`: CoreBluetooth helper with Bluetooth usage metadata.
+- `JadensPrinterService`: LaunchAgent entrypoint for the local IPP server.
+- `JadensIPPCommand`: print command that renders PDF pages and sends raw BLE
+  payloads.
+- `run_ble_probe_app.sh`: helper used by the installer to trigger the
+  Bluetooth permission prompt.
+
+Debug helpers live under `debug/`, and exploratory scripts live under
+`experiments/`. They are not included in the release payload.
+
 ## Publishing Releases
 
 `VERSION` is the release version source of truth. When `VERSION` changes on
@@ -94,10 +125,14 @@ Working:
   The tested unit advertised as `JD-268BT_4967-LE`.
 - Writable BLE print characteristic:
   `0000fff2-0000-1000-8000-00805f9b34fb`.
+- Notify characteristic observed during GATT discovery:
+  `0000fff1-0000-1000-8000-00805f9b34fb`.
 - A TSPL text command printed over BLE.
-- The JADENS macOS driver installs:
+- The JADENS macOS driver installs both expected files:
+  `/Library/Printers/Jadens/PPDs/JD-268BT.ppd` and
   `/Library/Printers/Jadens/Filter/rastertolabel`.
-- A PDF page rendered through `rastertolabel` printed when sent over BLE.
+- A PDF page rendered through `rastertolabel` printed when sent over BLE
+  `FFF2`.
 - A local IPP queue can make this selectable from normal macOS print dialogs.
 - Multi-page jobs now send all page payloads over one BLE connection.
 
@@ -178,8 +213,3 @@ JADENS_BLE_LISTEN=0.25
 
 If labels print reliably, lower `JADENS_BLE_DELAY` to increase throughput. If
 labels are incomplete or skipped, raise it.
-
-## More Detail
-
-See `docs/implementation-notes.md` for the confirmed device details, shipped
-components, and the paths that were tried but not used.
