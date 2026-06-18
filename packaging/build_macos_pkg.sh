@@ -2,7 +2,11 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-VERSION="${JADENS_VERSION:-0.1.3}"
+read_default_version() {
+  tr -d '[:space:]' < "$ROOT/VERSION"
+}
+
+VERSION="${JADENS_VERSION:-$(read_default_version)}"
 DIST_ROOT="$ROOT/dist"
 RELEASE="$DIST_ROOT/JadensPrinterApp-$VERSION"
 PKG_WORK="$ROOT/build/macos-pkg"

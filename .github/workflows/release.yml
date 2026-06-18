@@ -1,0 +1,107 @@
+name: Build macOS Package
+
+on:
+  pull_request:
+    paths:
+      - VERSION
+      - .github/workflows/release.yml
+      - packaging/**
+      - pyinstaller/**
+      - src/**
+      - requirements.txt
+  push:
+    branches:
+      - main
+    paths:
+      - VERSION
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    name: Build installer
+    runs-on: macos-26
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Read version
+        id: version
+        shell: bash
+        run: |
+          version="$(tr -d '[:space:]' < VERSION)"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
+            echo "VERSION must be a semver-like value, got: $version" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+
+      - name: Validate scripts
+        shell: bash
+        run: |
+          bash -n packaging/*.sh debug/*.sh src/*.sh
+          python -m py_compile src/*.py experiments/*.py
+
+      - name: Build package
+        shell: bash
+        env:
+          JADENS_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          python -m venv .venv
+          ./packaging/package_release.sh
+
+      - name: Inspect package
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          pkg="dist/JadensPrinterApp-$VERSION.pkg"
+          test -f "$pkg"
+          pkgutil --payload-files "$pkg" | grep -q 'Library/Application Support/JadensPrinterApp/package-payload/app/apps/BLEProbe.app'
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: JadensPrinterApp-${{ steps.version.outputs.version }}-pkg
+          path: dist/JadensPrinterApp-${{ steps.version.outputs.version }}.pkg
+          if-no-files-found: error
+
+      - name: Publish GitHub Release
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+          PKG: dist/JadensPrinterApp-${{ steps.version.outputs.version }}.pkg
+        run: |
+          cat > release-notes.md <<EOF
+          Unsigned Apple Silicon macOS installer for JADENS Printer App $VERSION.
+
+          This package installs a local macOS printer bridge for JADENS JD-268BT Bluetooth label printers. It creates the local CUPS queue, starts the user LaunchAgent, and downloads the official JADENS macOS driver package if needed.
+
+          Because this package is unsigned, macOS may require control-click -> Open.
+          EOF
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$PKG" --clobber
+            gh release edit "$TAG" --title "JADENS Printer App $VERSION" --notes-file release-notes.md
+          else
+            gh release create "$TAG" "$PKG" \
+              --target "$GITHUB_SHA" \
+              --title "JADENS Printer App $VERSION" \
+              --notes-file release-notes.md
+          fi

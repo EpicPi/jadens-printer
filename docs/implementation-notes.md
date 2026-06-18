@@ -70,8 +70,8 @@ That binary starts `ippeveprinter` with `JadensIPPCommand` as the print command.
 `packaging/package_release.sh` builds:
 
 ```text
-dist/JadensPrinterApp-0.1.3/
-dist/JadensPrinterApp-0.1.3.pkg
+dist/JadensPrinterApp-$(cat VERSION)/
+dist/JadensPrinterApp-$(cat VERSION).pkg
 ```
 
 The release payload contains:
@@ -89,6 +89,9 @@ Debug helpers live under `debug/`, and exploratory scripts live under
 The installer removes partial previous installs before copying new files. It
 unloads the old LaunchAgent, removes the old queue, stops stale `ippeveprinter`
 processes, deletes the old app directory, then installs the fresh runtime.
+
+GitHub Actions builds the unsigned Apple Silicon package when `VERSION` changes
+on `main`, then attaches the package to the GitHub Release tagged `v<version>`.
 
 ## Paths Tried But Not Shipped
 

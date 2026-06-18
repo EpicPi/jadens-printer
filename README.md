@@ -1,15 +1,38 @@
-# JADENS BLE Printer App
+# JADENS JD-268BT macOS Printer App
 
-A local macOS printer app for the JADENS JD-268BT Bluetooth LE label printer.
-It lets normal macOS print dialogs target a local IPP queue, then forwards the
-rendered label stream to the printer over BLE.
+This project lets macOS print to a JADENS JD-268BT label printer over
+Bluetooth. It installs a local printer queue that appears in normal macOS print
+dialogs, renders print jobs with the vendor JADENS macOS driver, then sends the
+printer-ready output to the JD-268BT over Bluetooth LE.
 
 This project is not affiliated with or endorsed by JADENS.
 
-This project does not implement a custom JADENS raster encoder. The working
-path uses the vendor macOS driver package for PDF-to-label conversion, then
-sends the vendor-generated printer stream over the confirmed BLE write
-characteristic.
+It does not implement a custom JADENS raster encoder. The app uses the official
+JADENS macOS driver package for PDF-to-label conversion and uses BLE as the
+transport to the printer.
+
+## Download
+
+Installable packages are attached to
+[GitHub Releases](https://github.com/EpicPi/jadens-printer/releases). Download
+the latest `JadensPrinterApp-<version>.pkg` asset and open it on an Apple
+Silicon Mac.
+
+The package runs through the normal macOS Installer UI. It copies the app
+payload, downloads and installs the official JADENS macOS driver if needed,
+starts the `JadensPrinterService` LaunchAgent, creates the `Jadens_268BT_BLE`
+queue, and launches `BLEProbe.app` once so macOS can ask for Bluetooth
+permission.
+
+The first install requires internet access if the JADENS driver is not already
+installed. The downloaded driver package is verified against a pinned SHA-256
+checksum before it is installed.
+
+The package is unsigned. Use control-click -> Open if Gatekeeper blocks a normal
+double-click.
+
+This release is Apple Silicon only because the packaged helper binaries are
+built as `arm64`.
 
 ## Current Print Path
 
@@ -35,42 +58,29 @@ The printer service starts at user login through:
 ~/Library/LaunchAgents/com.kancharlawar.jadensprinter.plist
 ```
 
-## Package for Another Mac
+## Build Locally
 
-Build the release bundle and double-click installer:
+Create a local release bundle and installer:
 
 ```sh
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
 ./packaging/package_release.sh
 ```
 
 This creates:
 
 ```text
-dist/JadensPrinterApp-0.1.3/
-dist/JadensPrinterApp-0.1.3.pkg
+dist/JadensPrinterApp-$(cat VERSION)/
+dist/JadensPrinterApp-$(cat VERSION).pkg
 ```
 
-On another Apple Silicon Mac, open:
+## Publishing Releases
 
-```text
-JadensPrinterApp-0.1.3.pkg
-```
-
-The package runs through the normal macOS Installer UI. It copies the app
-payload, downloads and installs the official JADENS macOS driver if needed,
-starts the `JadensPrinterService` LaunchAgent, creates the `Jadens_268BT_BLE`
-queue, and launches `BLEProbe.app` once so macOS can ask for Bluetooth
-permission.
-
-The first install requires internet access if the JADENS driver is not already
-installed. The downloaded driver package is verified against a pinned SHA-256
-checksum before it is installed.
-
-The package is unsigned. Use control-click -> Open if Gatekeeper blocks a normal
-double-click.
-
-This release is Apple Silicon only because the packaged helper binaries are
-built as `arm64`.
+`VERSION` is the release version source of truth. When `VERSION` changes on
+`main`, GitHub Actions builds `dist/JadensPrinterApp-<version>.pkg` on an
+Apple Silicon macOS runner and publishes it to the GitHub Release tagged
+`v<version>`.
 
 ## What We Validated
 
