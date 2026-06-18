@@ -13,6 +13,9 @@ Installable packages are attached to
 the latest `JadensPrinterApp-<version>.pkg` asset and open it on an Apple
 Silicon Mac.
 
+Turn on the printer and connect it in macOS Bluetooth settings. If macOS asks
+for a PIN, try `0000` or `1234`.
+
 After installing, choose `Jadens_268BT_BLE` from a normal macOS print dialog.
 macOS may ask for Bluetooth permission the first time the helper app runs.
 
