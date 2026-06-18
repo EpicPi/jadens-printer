@@ -206,8 +206,8 @@ TSPL smoke test:
 The default write pacing is conservative:
 
 ```text
-JADENS_BLE_DELAY=0.01
-JADENS_BLE_FILE_DELAY=0.05
+JADENS_BLE_DELAY=0.005
+JADENS_BLE_FILE_DELAY=0.02
 JADENS_BLE_LISTEN=0.25
 ```
 
