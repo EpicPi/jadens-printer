@@ -10,12 +10,14 @@ filter, then sends the compact raw page stream over BLE characteristic FFF2.
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import sys
 import tempfile
 import io
 import time
 from argparse import Namespace
+from collections.abc import Mapping
 from contextlib import redirect_stdout
 from pathlib import Path
 
@@ -31,6 +33,13 @@ def detect_app_root() -> Path:
 ROOT = detect_app_root()
 DEFAULT_BLE_NAME = "JD-268BT"
 DEFAULT_BLE_CHAR = "0000fff2-0000-1000-8000-00805f9b34fb"
+DEFAULT_PAGE_SIZE = "w288h432"
+CUSTOM_WIDTH_MIN_POINTS = 36
+CUSTOM_WIDTH_MAX_POINTS = 294
+CUSTOM_HEIGHT_MIN_POINTS = 36
+CUSTOM_HEIGHT_MAX_POINTS = 5670
+POINTS_PER_INCH = 72
+IPP_UNITS_PER_INCH = 2540
 COMMAND_LOG = Path(os.environ.get("JADENS_LOG_FILE", ROOT / "logs/ipp-jadens-command.log"))
 
 VENV_PYTHON = ROOT / ".venv/bin/python"
@@ -96,10 +105,104 @@ def copies_from_args(argv: list[str]) -> int:
     return 1
 
 
-def prepare_page(pdf: Path, page: int, output: Path) -> None:
+def points_from_ipp_dimension(value: int) -> int:
+    return round(value * POINTS_PER_INCH / IPP_UNITS_PER_INCH)
+
+
+def points_from_named_dimension(value: str, unit: str) -> int:
+    numeric = float(value)
+    normalized = unit.lower()
+    if normalized == "in":
+        return round(numeric * POINTS_PER_INCH)
+    if normalized == "mm":
+        return round(numeric * POINTS_PER_INCH / 25.4)
+    if normalized == "cm":
+        return round(numeric * POINTS_PER_INCH / 2.54)
+    raise ValueError(f"unsupported media unit: {unit}")
+
+
+def custom_page_size(width_points: int, height_points: int) -> str:
+    if width_points == 288 and height_points == 432:
+        return DEFAULT_PAGE_SIZE
+
+    if not CUSTOM_WIDTH_MIN_POINTS <= width_points <= CUSTOM_WIDTH_MAX_POINTS:
+        raise ValueError(
+            f"custom media width {width_points}pt is outside supported range "
+            f"{CUSTOM_WIDTH_MIN_POINTS}-{CUSTOM_WIDTH_MAX_POINTS}pt"
+        )
+    if not CUSTOM_HEIGHT_MIN_POINTS <= height_points <= CUSTOM_HEIGHT_MAX_POINTS:
+        raise ValueError(
+            f"custom media height {height_points}pt is outside supported range "
+            f"{CUSTOM_HEIGHT_MIN_POINTS}-{CUSTOM_HEIGHT_MAX_POINTS}pt"
+        )
+    return f"Custom.{width_points}x{height_points}"
+
+
+def page_size_from_media_keyword(media: str) -> str | None:
+    value = media.strip().strip('"')
+    if value in {"", "none"}:
+        return None
+    if value in {DEFAULT_PAGE_SIZE, "na_index-4x6_4x6in"}:
+        return DEFAULT_PAGE_SIZE
+
+    token_match = re.fullmatch(r"(?i)custom[._-](\d+)x(\d+)", value)
+    if token_match:
+        return custom_page_size(int(token_match.group(1)), int(token_match.group(2)))
+
+    size_match = re.search(r"(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)(in|mm|cm)(?:$|[^a-z0-9])", value, re.IGNORECASE)
+    if size_match:
+        width = points_from_named_dimension(size_match.group(1), size_match.group(3))
+        height = points_from_named_dimension(size_match.group(2), size_match.group(3))
+        return custom_page_size(width, height)
+
+    return None
+
+
+def page_size_from_media_col(value: str) -> str | None:
+    x_match = re.search(r"x-dimension\s*=\s*(\d+)", value)
+    y_match = re.search(r"y-dimension\s*=\s*(\d+)", value)
+    if not x_match or not y_match:
+        name_match = re.search(r'(?:media-size-name|media-key)\s*=\s*"?([^"\s}]+)', value)
+        if name_match:
+            return page_size_from_media_keyword(name_match.group(1))
+        return None
+
+    width = points_from_ipp_dimension(int(x_match.group(1)))
+    height = points_from_ipp_dimension(int(y_match.group(1)))
+    return custom_page_size(width, height)
+
+
+def page_size_from_job_env(env: Mapping[str, str]) -> str:
+    for x_key, y_key in (
+        ("IPP_MEDIA_COL_MEDIA_SIZE_X_DIMENSION", "IPP_MEDIA_COL_MEDIA_SIZE_Y_DIMENSION"),
+        ("IPP_MEDIA_SIZE_X_DIMENSION", "IPP_MEDIA_SIZE_Y_DIMENSION"),
+    ):
+        if env.get(x_key) and env.get(y_key):
+            width = points_from_ipp_dimension(int(env[x_key]))
+            height = points_from_ipp_dimension(int(env[y_key]))
+            return custom_page_size(width, height)
+
+    for key in ("IPP_MEDIA_COL", "IPP_MEDIA_SIZE"):
+        value = env.get(key)
+        if value:
+            page_size = page_size_from_media_col(value)
+            if page_size:
+                return page_size
+
+    media = env.get("IPP_MEDIA")
+    if media:
+        page_size = page_size_from_media_keyword(media)
+        if page_size:
+            return page_size
+        raise ValueError(f"unsupported requested media: {media}")
+
+    return DEFAULT_PAGE_SIZE
+
+
+def prepare_page(pdf: Path, page: int, output: Path, page_size: str) -> None:
     from prepare_jadens_raw import DEFAULT_FILTER, DEFAULT_PPD, prepare_raw
 
-    log("DEBUG", f"preparing {pdf} page {page} -> {output}")
+    log("DEBUG", f"preparing {pdf} page {page} -> {output} page_size={page_size}")
     buffer = io.StringIO()
     with redirect_stdout(buffer):
         prepare_raw(
@@ -107,7 +210,7 @@ def prepare_page(pdf: Path, page: int, output: Path) -> None:
                 pdf=pdf,
                 page=page,
                 output=output,
-                page_size=os.environ.get("JADENS_PAGE_SIZE", "w288h432"),
+                page_size=page_size,
                 ppd=Path(os.environ.get("JADENS_PPD", DEFAULT_PPD)),
                 filter=Path(os.environ.get("JADENS_FILTER", DEFAULT_FILTER)),
                 strip_leading_nuls=True,
@@ -188,11 +291,12 @@ def main(argv: list[str]) -> int:
         pdf = spool_file_from_args(argv)
         copies = copies_from_args(argv)
         pages = pdf_page_count(pdf)
+        page_size = page_size_from_job_env(os.environ)
 
         if content_type not in {"application/pdf", "unknown"}:
             log("INFO", f"received CONTENT_TYPE={content_type}; attempting PDF handling")
 
-        log("INFO", f"printing {pdf.name}: pages={pages} copies={copies}")
+        log("INFO", f"printing {pdf.name}: pages={pages} copies={copies} page_size={page_size}")
         print("STATE: +connecting-to-device", file=sys.stderr, flush=True)
 
         job_start = time.monotonic()
@@ -204,7 +308,7 @@ def main(argv: list[str]) -> int:
             for page in range(1, pages + 1):
                 raw = temp_path / f"page-{page}.raw"
                 log("INFO", f"rendering page {page}/{pages}")
-                prepare_page(pdf, page, raw)
+                prepare_page(pdf, page, raw, page_size)
                 prepared_pages.append(raw)
             log("INFO", f"rendered {pages} page(s) in {time.monotonic() - render_start:.2f}s")
 
