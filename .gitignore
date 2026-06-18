@@ -1,0 +1,45 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+
+# Python
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Build and release outputs
+build/
+dist/
+*.pkg
+*.dmg
+*.zip
+*.tgz
+*.tar.gz
+
+# Printer/job artifacts
+*.pdf
+*.raw
+*.trimmed
+*.cupsraster
+*.prn
+*.log
+
+# Local configuration and secrets
+.env
+.env.*
+*.local
+
+# Editor files
+*.swp
+*.swo
+.idea/
+.vscode/
