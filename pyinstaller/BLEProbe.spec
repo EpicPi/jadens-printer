@@ -50,7 +50,7 @@ app = BUNDLE(
     bundle_identifier="com.kancharlawar.jadensprinter.bleprobe",
     info_plist={
         "CFBundleName": "Jadens BLE Probe",
-        "NSBluetoothAlwaysUsageDescription": "This Python prototype scans for and connects to your local JADENS thermal printer over Bluetooth LE.",
-        "NSBluetoothPeripheralUsageDescription": "This Python prototype scans for and connects to your local JADENS thermal printer over Bluetooth LE.",
+        "NSBluetoothAlwaysUsageDescription": "JADENS Printer App uses Bluetooth to find and connect to JD-268BT label printers for printing.",
+        "NSBluetoothPeripheralUsageDescription": "JADENS Printer App uses Bluetooth to find and connect to JD-268BT label printers for printing.",
     },
 )
