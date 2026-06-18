@@ -4,7 +4,6 @@ set -euo pipefail
 PATH="/usr/bin:/bin:/usr/sbin:/sbin"
 
 LABEL="com.kancharlawar.jadensprinter"
-OLD_LABEL="com.local.jadens-printer-app"
 QUEUE_NAME="${JADENS_QUEUE_NAME:-Jadens_268BT_BLE}"
 IPP_PORT="${JADENS_IPP_PORT:-8631}"
 DRIVER_PPD="/Library/Printers/Jadens/PPDs/JD-268BT.ppd"
@@ -136,13 +135,10 @@ cleanup_previous_install() {
   local install_root="$2"
   local uid="$3"
   local launch_agent="$home/Library/LaunchAgents/$LABEL.plist"
-  local old_launch_agent="$home/Library/LaunchAgents/$OLD_LABEL.plist"
 
   log "Cleaning up any previous partial install."
   launchctl bootout "gui/$uid" "$launch_agent" >/dev/null 2>&1 || true
-  launchctl bootout "gui/$uid" "$old_launch_agent" >/dev/null 2>&1 || true
   rm -f "$launch_agent"
-  rm -f "$old_launch_agent"
   lpadmin -x "$QUEUE_NAME" >/dev/null 2>&1 || true
   stop_stale_printer_processes "$uid"
   rm -rf "$install_root"
