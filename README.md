@@ -46,14 +46,14 @@ Build the release bundle and double-click installer:
 This creates:
 
 ```text
-dist/JadensPrinterApp-0.1.2/
-dist/JadensPrinterApp-0.1.2.pkg
+dist/JadensPrinterApp-0.1.3/
+dist/JadensPrinterApp-0.1.3.pkg
 ```
 
 On another Apple Silicon Mac, open:
 
 ```text
-JadensPrinterApp-0.1.2.pkg
+JadensPrinterApp-0.1.3.pkg
 ```
 
 The package runs through the normal macOS Installer UI. It copies the app

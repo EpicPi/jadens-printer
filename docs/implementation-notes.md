@@ -70,8 +70,8 @@ That binary starts `ippeveprinter` with `JadensIPPCommand` as the print command.
 `packaging/package_release.sh` builds:
 
 ```text
-dist/JadensPrinterApp-0.1.2/
-dist/JadensPrinterApp-0.1.2.pkg
+dist/JadensPrinterApp-0.1.3/
+dist/JadensPrinterApp-0.1.3.pkg
 ```
 
 The release payload contains:

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-VERSION="${JADENS_VERSION:-0.1.2}"
+VERSION="${JADENS_VERSION:-0.1.3}"
 DIST_ROOT="$ROOT/dist"
 RELEASE="$DIST_ROOT/JadensPrinterApp-$VERSION"
 APP_PAYLOAD="$RELEASE/app"
