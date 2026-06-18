@@ -1,20 +1,11 @@
 name: Build macOS Package
 
 on:
-  pull_request:
-    paths:
-      - VERSION
-      - .github/workflows/release.yml
-      - packaging/**
-      - pyinstaller/**
-      - src/**
-      - requirements.txt
   push:
     branches:
       - main
     paths:
       - VERSION
-  workflow_dispatch:
 
 permissions:
   contents: write
@@ -80,7 +71,6 @@ jobs:
           if-no-files-found: error
 
       - name: Publish GitHub Release
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
