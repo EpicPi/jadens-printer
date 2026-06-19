@@ -21,6 +21,13 @@ def fail(message: str) -> None:
     raise SystemExit(1)
 
 
+def default_ipp_attrs(root: Path) -> Path:
+    packaged = root / "resources/JD-268BT-ipp-attrs.conf"
+    if packaged.exists():
+        return packaged
+    return root / "src/JD-268BT-ipp-attrs.conf"
+
+
 def main(argv: list[str]) -> int:
     root = detect_app_root()
     port = os.environ.get("JADENS_IPP_PORT", "8631")
@@ -29,6 +36,7 @@ def main(argv: list[str]) -> int:
     device_uri = os.environ.get("JADENS_DEVICE_URI", f"jadensble://{ble_name}")
     ppd = Path(os.environ.get("JADENS_PPD", "/Library/Printers/Jadens/PPDs/JD-268BT.ppd"))
     spool = root / "build/ipp-spool"
+    ipp_attrs = Path(os.environ.get("JADENS_IPP_ATTRS", str(default_ipp_attrs(root))))
     packaged_command = root / "bin/JadensIPPCommand/JadensIPPCommand"
     source_command = root / "src/ipp_jadens_command.py"
     ble_app = Path(os.environ.get("JADENS_BLE_APP", str(root / "apps/BLEProbe.app")))
@@ -43,10 +51,13 @@ def main(argv: list[str]) -> int:
         print(f"  JADENS_BLE_NAME={ble_name}")
         print(f"  JADENS_DEVICE_URI={device_uri}")
         print(f"  JADENS_PPD={ppd}")
+        print(f"  JADENS_IPP_ATTRS={ipp_attrs}")
         return 0
 
     if not ppd.exists():
         fail(f"Missing JADENS PPD: {ppd}\nInstall the JADENS macOS driver package first.")
+    if not ipp_attrs.exists():
+        fail(f"Missing IPP attributes file: {ipp_attrs}")
 
     if packaged_command.exists() and os.access(packaged_command, os.X_OK):
         command = packaged_command
@@ -79,21 +90,15 @@ def main(argv: list[str]) -> int:
         port,
         "-d",
         str(spool),
+        "-a",
+        str(ipp_attrs),
     ]
     if os.environ.get("JADENS_IPP_KEEP_JOBS", "0") == "1":
         args.append("-k")
     args.extend(
         [
-            "-M",
-            "JADENS",
-            "-m",
-            "JD-268BT",
             "-l",
             "Local BLE",
-            "-s",
-            "4",
-            "-f",
-            "application/pdf",
             "-F",
             "application/pdf",
             "-D",

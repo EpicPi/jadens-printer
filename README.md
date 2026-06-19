@@ -68,6 +68,12 @@ For each print job, `JadensIPPCommand` renders every PDF page, converts each
 page to CUPS raster with `cupsfilter`, runs each raster page through
 `rastertolabel`, then sends all page payloads over one BLE connection.
 
+The local IPP server advertises 4x6 as the default named media size and accepts
+custom `media-col` sizes from the macOS print dialog. The actual render path
+still uses the vendor JADENS PPD because the vendor filter path needs that PPD's
+printer-specific options. 4x6 renders as `PageSize=w288h432`; custom sizes
+render as `PageSize=Custom.<width>x<height>` in PostScript points.
+
 The installed runtime lives at:
 
 ```text

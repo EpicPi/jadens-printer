@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SPOOL="$ROOT/build/ipp-spool"
+IPP_ATTRS="${JADENS_IPP_ATTRS:-$ROOT/src/JD-268BT-ipp-attrs.conf}"
 PORT="${JADENS_IPP_PORT:-8631}"
 NAME="${JADENS_IPP_NAME:-Jadens 268BT BLE}"
 BLE_NAME="${JADENS_BLE_NAME:-JD-268BT}"
@@ -28,6 +29,7 @@ if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   echo "  JADENS_IPP_PORT=$PORT"
   echo "  JADENS_IPP_NAME=\"$NAME\""
   echo "  JADENS_PPD=$PPD"
+  echo "  JADENS_IPP_ATTRS=$IPP_ATTRS"
   echo "  JADENS_BLE_NAME=$BLE_NAME"
   echo "  JADENS_DEVICE_URI=$DEVICE_URI"
   echo "  JADENS_BLE_CHAR=0000fff2-0000-1000-8000-00805f9b34fb"
@@ -56,6 +58,11 @@ if [[ ! -d "$BLE_APP" ]]; then
   "$ROOT/packaging/build_ble_probe_app.sh"
 fi
 
+if [[ ! -f "$IPP_ATTRS" ]]; then
+  echo "Missing IPP attributes file: $IPP_ATTRS" >&2
+  exit 1
+fi
+
 mkdir -p "$SPOOL"
 
 KEEP_ARGS=()
@@ -77,12 +84,9 @@ exec env \
   -v \
   -p "$PORT" \
   -d "$SPOOL" \
+  -a "$IPP_ATTRS" \
   ${KEEP_ARGS[@]+"${KEEP_ARGS[@]}"} \
-  -M "JADENS" \
-  -m "JD-268BT" \
   -l "Local BLE" \
-  -s "4" \
-  -f "application/pdf" \
   -F "application/pdf" \
   -D "$DEVICE_URI" \
   -c "$COMMAND" \
