@@ -60,8 +60,11 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           pkg="dist/JadensPrinterApp-$VERSION.pkg"
+          expanded="$(mktemp -d)/pkg-expanded"
           test -f "$pkg"
-          pkgutil --payload-files "$pkg" | grep -q 'Library/Application Support/JadensPrinterApp/package-payload/app/apps/BLEProbe.app'
+          pkgutil --expand "$pkg" "$expanded"
+          pkgutil --payload-files "$pkg" | grep -q 'Library/Application Support/JadensPrinterApp/package-payload/app/apps/BLEProbe.app.payload/Contents/MacOS/BLEProbe'
+          grep -q '<relocate/>' "$expanded/JadensPrinterApp-component.pkg/PackageInfo"
 
       - name: Upload package artifact
         uses: actions/upload-artifact@v4

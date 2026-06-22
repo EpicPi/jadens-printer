@@ -15,6 +15,8 @@ PKG_SCRIPTS="$PKG_WORK/scripts"
 PKG_PACKAGES="$PKG_WORK/packages"
 PKG_APP_ROOT="$PKG_ROOT/Library/Application Support/JadensPrinterApp"
 PKG_APP_PAYLOAD="$PKG_APP_ROOT/package-payload/app"
+BLE_PROBE_APP="$PKG_APP_PAYLOAD/apps/BLEProbe.app"
+BLE_PROBE_STAGED_APP="$PKG_APP_PAYLOAD/apps/BLEProbe.app.payload"
 APP_COMPONENT_PKG="$PKG_PACKAGES/JadensPrinterApp-component.pkg"
 COMPONENT_PLIST="$PKG_WORK/components.plist"
 DISTRIBUTION="$PKG_WORK/Distribution.xml"
@@ -34,10 +36,15 @@ mkdir -p "$PKG_APP_ROOT" "$PKG_APP_PAYLOAD" "$PKG_SCRIPTS" "$PKG_PACKAGES"
 
 printf "%s\n" "$VERSION" > "$PKG_APP_ROOT/.package-version"
 ditto --norsrc --noextattr --noqtn "$RELEASE/app" "$PKG_APP_PAYLOAD"
+if [[ -d "$BLE_PROBE_APP" ]]; then
+  rm -rf "$BLE_PROBE_STAGED_APP"
+  mv "$BLE_PROBE_APP" "$BLE_PROBE_STAGED_APP"
+fi
 
 cp "$ROOT/packaging/pkg_postinstall.sh" "$PKG_SCRIPTS/postinstall"
 chmod +x "$PKG_SCRIPTS/postinstall"
 xattr -cr "$PKG_ROOT" "$PKG_SCRIPTS" 2>/dev/null || true
+find "$PKG_ROOT" "$PKG_SCRIPTS" -name '._*' -delete
 
 pkgbuild --analyze --root "$PKG_ROOT" "$COMPONENT_PLIST"
 if /usr/libexec/PlistBuddy -c "Print :0:BundleIsRelocatable" "$COMPONENT_PLIST" >/dev/null 2>&1; then
