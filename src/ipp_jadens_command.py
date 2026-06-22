@@ -260,7 +260,7 @@ def send_raws(raws: list[Path]) -> None:
             "--delay",
             os.environ.get("JADENS_BLE_DELAY", "0.005"),
             "--file-delay",
-            os.environ.get("JADENS_BLE_FILE_DELAY", "0.02"),
+            os.environ.get("JADENS_BLE_FILE_DELAY", "2.0"),
             "--listen",
             os.environ.get("JADENS_BLE_LISTEN", "0.25"),
             *[str(raw) for raw in raws],
