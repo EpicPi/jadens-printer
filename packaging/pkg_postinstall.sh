@@ -148,6 +148,8 @@ install_app_files() {
   local install_root="$1"
   local uid="$2"
   local gid="$3"
+  local ble_probe_app="$install_root/apps/BLEProbe.app"
+  local staged_ble_probe_app="$install_root/apps/BLEProbe.app.payload"
 
   if [[ ! -d "$APP_PAYLOAD" ]]; then
     echo "Missing package payload: $APP_PAYLOAD" >&2
@@ -157,6 +159,14 @@ install_app_files() {
   log "Installing app files to $install_root"
   mkdir -p "$install_root"
   rsync -a --delete "$APP_PAYLOAD/" "$install_root/"
+  if [[ -d "$staged_ble_probe_app" ]]; then
+    rm -rf "$ble_probe_app"
+    mv "$staged_ble_probe_app" "$ble_probe_app"
+  fi
+  if [[ ! -d "$ble_probe_app" ]]; then
+    echo "Missing BLEProbe.app: $ble_probe_app" >&2
+    exit 1
+  fi
   mkdir -p "$install_root/logs" "$install_root/build"
   chown -R "$uid:$gid" "$install_root"
   xattr -dr com.apple.quarantine "$install_root" 2>/dev/null || true
