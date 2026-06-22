@@ -216,9 +216,10 @@ The default write pacing is conservative:
 
 ```text
 JADENS_BLE_DELAY=0.005
-JADENS_BLE_FILE_DELAY=0.02
+JADENS_BLE_FILE_DELAY=2.0
 JADENS_BLE_LISTEN=0.25
 ```
 
 If labels print reliably, lower `JADENS_BLE_DELAY` to increase throughput. If
-labels are incomplete or skipped, raise it.
+labels are incomplete, skipped, or garbled during multi-page jobs, raise
+`JADENS_BLE_FILE_DELAY`.
